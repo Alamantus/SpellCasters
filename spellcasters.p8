@@ -1,259 +1,259 @@
 pico-8 cartridge // http://www.pico-8.com
 version 4
 __lua__
---spellcasters (v 0.7)
+--spellcasters (v 0.7.1)
 --by alamantus gamedev
 left=0
 right=1
 up=2
 down=3
---roomsize
-rsx=128
-rsy=128
+
+roomsizex=128
+roomsizey=128
 screen=0
---spells: n=name f=form s=spr c=cast
-sp={}
-sp.f={}
-sp.f.n="fire"
-sp.f.f={}
-sp.f.s=0
-sp.f.c=false
-sp.i={}
-sp.i.n="ice"
-sp.i.f={}
-sp.i.s=8
-sp.i.c=false
-sp.e={}
-sp.e.n="elec"
-sp.e.f={}
-sp.e.s=16
-sp.e.c=false
-sp.r={}
-sp.r.n="rock"
-sp.r.f={}
-sp.r.s=24
-sp.r.c=false
-sp.n={} --none
-sp.n.s=32
-sp.n.c=false
-sp.a={} --animation vars
-sp.a.step=0
-sp.a.frame=0
-sp.draw=function(spell,x,y)
- local sprite=16*(spell.s/8)+4
- drawrecipe(spell.f,x,y,sprite)
+
+spells={}
+spells.fire={}
+spells.fire.name="fire"
+spells.fire.form={}
+spells.fire.sprite=0
+spells.fire.cast=false
+spells.ice={}
+spells.ice.name="ice"
+spells.ice.form={}
+spells.ice.sprite=8
+spells.ice.cast=false
+spells.elec={}
+spells.elec.name="elec"
+spells.elec.form={}
+spells.elec.sprite=16
+spells.elec.cast=false
+spells.rock={}
+spells.rock.name="rock"
+spells.rock.form={}
+spells.rock.sprite=24
+spells.rock.cast=false
+spells.none={} --none
+spells.none.sprite=32
+spells.none.cast=false
+spells.animation={} --animation vars
+spells.animation.step=0
+spells.animation.frame=0
+spells.draw=function(spell,x,y)
+ local sprite=16*(spell.sprite/8)+4
+ drawrecipe(spell.form,x,y,sprite)
 end
---acceptable wand positions
-d={} --[xmin,ymin,xmax,ymax]
-d.u={48,0,80,16}
-d.r={80,32,96,64}
-d.d={48,80,80,96}
-d.l={0,32,16,64}
---10 timers
-t={0,0,0,0,0,0,0,0,0,0}
---monsters
-m={}
-m.cur=flr(rnd(4))+1 --1:spider 2:blob 3:magma 4:mummy
-m.lvl=0
-m.att=false
-m.update=function()
- t[2]+=1
- if t[2]>210-(5*m.lvl) then
-  m.att=true
+
+wandposition={} --[xmin,ymin,xmax,ymax]
+wandposition.up={48,0,80,16}
+wandposition.right={80,32,96,64}
+wandposition.down={48,80,80,96}
+wandposition.left={0,32,16,64}
+
+timer={0,0,0,0,0,0,0,0,0,0}
+
+monsters={}
+monsters.current=flr(rnd(4))+1 --1:spider 2:blob 3:magma 4:mummy
+monsters.level=0
+monsters.attacking=false
+monsters.update=function()
+ timer[2]+=1
+ if timer[2]>210-(5*monsters.level) then
+  monsters.attacking=true
   sfx(6) --hit sfx
-  p.hp-=1
-  t[2]=0
+  player.hp-=1
+  timer[2]=0
  end
 end
-m.draw=function ()
+monsters.draw=function ()
  local y=16
- if m.att then
+ if monsters.attacking then
   y=24
  end
- if m.cur==1 then
+ if monsters.current==1 then
   sspr(56,0,16,16,48,y,32,32)
- elseif m.cur==2 then
+ elseif monsters.current==2 then
   sspr(72,0,16,16,48,y,32,32)
- elseif m.cur==3 then
+ elseif monsters.current==3 then
   sspr(88,0,16,16,48,y,32,32)
- elseif m.cur==4 then
+ elseif monsters.current==4 then
   sspr(104,0,16,16,48,y,32,32)
  else
   sspr(56,16,16,16,48,y,32,32)
  end
- m.att=false
+ monsters.attacking=false
 end
-m.chkdmg=function()
- if (m.cur==1 and sp.r.c) or (m.cur==2 and sp.e.c) or (m.cur==3 and sp.i.c) or (m.cur==4 and sp.f.c) then
+monsters.checkdamage=function()
+ if (monsters.current==1 and spells.rock.cast) or (monsters.current==2 and spells.elec.cast) or (monsters.current==3 and spells.ice.cast) or (monsters.current==4 and spells.fire.cast) then
   sfx(7) --kill monster
-  m.cur=flr(rnd(4))+1
-  m.lvl+=1
-  t[2]=0  
+  monsters.current=flr(rnd(4))+1
+  monsters.level+=1
+  timer[2]=0  
  else
   sfx(8) --miss
  end
 end
---player
-p={}
-p.size=32
+
+player={}
+player.size=32
 center={48,48}
-p.x=48
-p.y=48
-p.xp=p.x --prev
-p.yp=p.y
-p.s=10 --move speed
-p.pos={}
-p.pos.u=false
-p.pos.r=false
-p.pos.d=false
-p.pos.l=false
-p.pos.last=10 --populate w/dir number
-p.hp=3
-p.spell={}
-p.wand=0
-p.update=function()
- p.xp=p.x
- p.yp=p.y
+player.x=48
+player.y=48
+player.xprevious=player.x
+player.yprevious=player.y
+player.s=10 --move speed
+player.wandposition={}
+player.wandposition.up=false
+player.wandposition.right=false
+player.wandposition.down=false
+player.wandposition.left=false
+player.wandposition.last=10 --populate w/dir number
+player.hp=3
+player.spell={}
+player.wand=0
+player.update=function()
+ player.xprevious=player.x
+ player.yprevious=player.y
  if not btn(5) then
-  p.move()
+  player.move()
  end
- if (count(p.spell)<4) then
-  p.chkpos()
+ if (count(player.spell)<4) then
+  player.checkposition()
  end
- if btnp(4) or t[1]>60 then
-  p.c()
+ if btnp(4) or timer[1]>60 then
+  player.cast()
  end
  if btn(5) and btnp(4) then
-  p.cngwand()
+  player.changewand()
  end
- p.resetpos()
- if count(p.spell)>0 then
-  t[1]+=1
+ player.resetposition()
+ if count(player.spell)>0 then
+  timer[1]+=1
  end
- if p.hp<=0 then
+ if player.hp<=0 then
   screen=2
  end
 end
-p.move=function()
+player.move=function()
  if btn(left) then
-  p.x-=p.s
+  player.x-=player.s
  end
  if btn(right) then
-  p.x+=p.s
+  player.x+=player.s
  end
  if btn(up) then
-  p.y-=p.s
+  player.y-=player.s
  end
  if btn(down) then
-  p.y+=p.s
+  player.y+=player.s
  end
- if p.x<0 or p.x>(rsx-p.size) then
-  p.x=p.xp
+ if player.x<0 or player.x>(roomsizex-player.size) then
+  player.x=player.xprevious
  end
- if p.y<0 or p.y>(rsy-p.size) then
-  p.y=p.yp
- end
-end
-p.chkpos=function()
- if p.x>=d.u[1] and p.y>=d.u[2] and p.x<=d.u[3] and p.y<=d.u[4] then
-  p.pos.u=true
-  if p.pos.last~=up then
-   p.pos.last=up
-   add(p.spell,up)
-  end
- else
-  p.pos.u=false
- end
- if p.x>=d.r[1] and p.y>=d.r[2] and p.x<=d.r[3] and p.y<=d.r[4] then
-  p.pos.r=true
-  if p.pos.last~=right then
-   p.pos.last=right
-   add(p.spell,right)
-  end
- else
-  p.pos.r=false
- end
- if p.x>=d.d[1] and p.y>=d.d[2] and p.x<=d.d[3] and p.y<=d.d[4] then
-  p.pos.d=true
-  if p.pos.last~=down then
-   p.pos.last=down
-   add(p.spell,down)
-  end
- else
-  p.pos.d=false
- end
- if p.x>=d.l[1] and p.y>=d.l[2] and p.x<=d.l[3] and p.y<=d.l[4] then
-  p.pos.l=true
-  if p.pos.last~=left then
-   p.pos.last=left
-   add(p.spell,left)
-  end
- else
-  p.pos.l=false
+ if player.y<0 or player.y>(roomsizey-player.size) then
+  player.y=player.yprevious
  end
 end
-p.c=function()
- if count(p.spell)>0 then
-  p.checkspell()
+player.checkposition=function()
+ if player.x>=wandposition.up[1] and player.y>=wandposition.up[2] and player.x<=wandposition.up[3] and player.y<=wandposition.up[4] then
+  player.wandposition.up=true
+  if player.wandposition.last~=up then
+   player.wandposition.last=up
+   add(player.spell,up)
+  end
+ else
+  player.wandposition.up=false
  end
- t[1]=0
- p.spell={}
+ if player.x>=wandposition.right[1] and player.y>=wandposition.right[2] and player.x<=wandposition.right[3] and player.y<=wandposition.right[4] then
+  player.wandposition.right=true
+  if player.wandposition.last~=right then
+   player.wandposition.last=right
+   add(player.spell,right)
+  end
+ else
+  player.wandposition.right=false
+ end
+ if player.x>=wandposition.down[1] and player.y>=wandposition.down[2] and player.x<=wandposition.down[3] and player.y<=wandposition.down[4] then
+  player.wandposition.down=true
+  if player.wandposition.last~=down then
+   player.wandposition.last=down
+   add(player.spell,down)
+  end
+ else
+  player.wandposition.down=false
+ end
+ if player.x>=wandposition.left[1] and player.y>=wandposition.left[2] and player.x<=wandposition.left[3] and player.y<=wandposition.left[4] then
+  player.wandposition.left=true
+  if player.wandposition.last~=left then
+   player.wandposition.last=left
+   add(player.spell,left)
+  end
+ else
+  player.wandposition.left=false
+ end
 end
-p.checkspell=function()
- if arr_match(p.spell,sp.f.f) then
-  sp.f.c=true
+player.cast=function()
+ if count(player.spell)>0 then
+  player.checkspell()
+ end
+ timer[1]=0
+ player.spell={}
+end
+player.checkspell=function()
+ if arraysmatch(player.spell,spells.fire.form) then
+  spells.fire.cast=true
   sfx(1)
- elseif arr_match(p.spell,sp.i.f) then
-  sp.i.c=true
+ elseif arraysmatch(player.spell,spells.ice.form) then
+  spells.ice.cast=true
   sfx(2)
- elseif arr_match(p.spell,sp.e.f) then
-  sp.e.c=true
+ elseif arraysmatch(player.spell,spells.elec.form) then
+  spells.elec.cast=true
   sfx(3)
- elseif arr_match(p.spell,sp.r.f) then
-  sp.r.c=true
+ elseif arraysmatch(player.spell,spells.rock.form) then
+  spells.rock.cast=true
   sfx(4)
  else
-  sp.n.c=true
+  spells.none.cast=true
   sfx(0)
  end
 end
-p.cngwand=function()
+player.changewand=function()
  sfx(5)
- p.wand+=8
- if p.wand>24 then
-  p.wand=0
+ player.wand+=8
+ if player.wand>24 then
+  player.wand=0
  end
 end
-p.resetpos=function()
- if not btn(left) and p.x < center[1] then
-   p.x+=p.s
+player.resetposition=function()
+ if not btn(left) and player.x < center[1] then
+   player.x+=player.s
  end
- if not btn(right) and p.x > center[1] then
-   p.x-=p.s
+ if not btn(right) and player.x > center[1] then
+   player.x-=player.s
  end
- if not btn(up) and p.y < center[2] then
-   p.y+=p.s
+ if not btn(up) and player.y < center[2] then
+   player.y+=player.s
  end
- if not btn(down) and p.y > center[2] then
-   p.y-=p.s
+ if not btn(down) and player.y > center[2] then
+   player.y-=player.s
  end
- if p.x==center[1] and p.y==center[2] then
-  p.pos.last=10
+ if player.x==center[1] and player.y==center[2] then
+  player.wandposition.last=10
  end
 end
-p.draw=function()
+player.draw=function()
  if btn(4) then
-  sspr(0,p.wand,8,8,p.x,p.y,p.size*0.6,p.size*2*0.6)
+  sspr(0,player.wand,8,8,player.x,player.y,player.size*0.6,player.size*2*0.6)
  else
-  sspr(0,p.wand,8,8,p.x,p.y,p.size,p.size*2)
+  sspr(0,player.wand,8,8,player.x,player.y,player.size,player.size*2)
  end
- drawhp(8,rsy-9)
- drawrecipe(p.spell,48,rsy-9,(16*(p.wand/8)))
+ drawhp(8,roomsizey-9)
+ drawrecipe(player.spell,48,roomsizey-9,(16*(player.wand/8)))
 end
 
 function drawhp(x,y)
  rectfill(x-1,y-1,x+1+24,y+8,5)
- for i=0,p.hp-1 do
+ for i=0,player.hp-1 do
   sspr(11,0,5,4,x+(8*i)+1,y+1,7,6)
  end
 end
@@ -274,11 +274,11 @@ function drawrecipe(spell,x,y,sprite)
  end
 end
 
-function arr_match(a1,a2)
+function arraysmatch(array1,array2)
  local match=false
- if count(a1)==count(a2) then
-  for i=1,count(a2) do
-   if a1[i]==a2[i] then
+ if count(array1)==count(array2) then
+  for i=1,count(array2) do
+   if array1[i]==array2[i] then
     match=true
    else
     match=false
@@ -291,39 +291,39 @@ function arr_match(a1,a2)
  return match
 end
 
-function anispell(spell,x,y,st)
- if not st then
-  st=10 --default step
+function animatespell(spell,x,y,step)
+ if not step then
+  step=10 --default step
  end
- sp.a.step+=1
- if sp.a.step>=st then
-  sp.a.step=0
-  sp.a.frame+=1
+ spells.animation.step+=1
+ if spells.animation.step>=step then
+  spells.animation.step=0
+  spells.animation.frame+=1
  end
- if sp.a.frame<5 then
-  sspr(16+(8*sp.a.frame),spell.s,8,8,x,y,p.size*2,p.size*2)
+ if spells.animation.frame<5 then
+  sspr(16+(8*spells.animation.frame),spell.sprite,8,8,x,y,player.size*2,player.size*2)
  end
- if sp.a.frame>=5 then
-  m.chkdmg()
-  sp.a.frame=0
-  sp.a.step=0
-  spell.c=false
+ if spells.animation.frame>=5 then
+  monsters.checkdamage()
+  spells.animation.frame=0
+  spells.animation.step=0
+  spell.cast=false
  end
 end
 
 function createspell(spell)
- spell.f={}
+ spell.form={}
  last=10
  --at least 1 at most 4
  for i=0,flr(rnd(3))+1 do
   pos=flr(rnd(4))
-  add(spell.f,pos)
+  add(spell.form,pos)
   last=pos
  end
- if (spell.n=="fire" and (arr_match(spell.f,sp.i.f) or arr_match(spell.f,sp.e.f) or arr_match(spell.f,sp.r.f)))
-  or (spell.n=="ice" and (arr_match(spell.f,sp.f.f) or arr_match(spell.f,sp.e.f) or arr_match(spell.f,sp.r.f)))
-  or (spell.n=="elec" and (arr_match(spell.f,sp.i.f) or arr_match(spell.f,sp.f.f) or arr_match(spell.f,sp.r.f)))
-  or (spell.n=="rock" and (arr_match(spell.f,sp.i.f) or arr_match(spell.f,sp.e.f) or arr_match(spell.f,sp.f.f)))
+ if (spell.name=="fire" and (arraysmatch(spell.form,spells.ice.form) or arraysmatch(spell.form,spells.elec.form) or arraysmatch(spell.form,spells.rock.form)))
+  or (spell.name=="ice" and (arraysmatch(spell.form,spells.fire.form) or arraysmatch(spell.form,spells.elec.form) or arraysmatch(spell.form,spells.rock.form)))
+  or (spell.name=="elec" and (arraysmatch(spell.form,spells.ice.form) or arraysmatch(spell.form,spells.fire.form) or arraysmatch(spell.form,spells.rock.form)))
+  or (spell.name=="rock" and (arraysmatch(spell.form,spells.ice.form) or arraysmatch(spell.form,spells.elec.form) or arraysmatch(spell.form,spells.fire.form)))
  then
   createspell(spell)
  end
@@ -342,12 +342,12 @@ function drawtitle()
  if title.frame<1 or title.frame>2 then
   title.incr*=-1
  end
- sspr(16+(8*title.frame),0,8,8,32,24,p.size*2,p.size*2)
+ sspr(16+(8*title.frame),0,8,8,32,24,player.size*2,player.size*2)
  
  if not btn(5) then
   sspr(0,40,64,8,13,32,110,12)
-  print("z: start",48,rsy-42,10)
-  print("x: help",50,rsy-32,10)
+  print("z: start",48,roomsizey-42,10)
+  print("x: help",50,roomsizey-32,10)
  else
   print("")
   print("you are a powerful mage, and")
@@ -370,47 +370,47 @@ function drawtitle()
 end
 function drawplay()
  map(0,0,32,36,8,4)
- m.draw()
+ monsters.draw()
  
- if sp.f.c then
-  anispell(sp.f,32,0,5)
+ if spells.fire.cast then
+  animatespell(spells.fire,32,0,5)
  end
- if sp.i.c then
-  anispell(sp.i,32,0,5)
+ if spells.ice.cast then
+  animatespell(spells.ice,32,0,5)
  end
- if sp.e.c then
-  anispell(sp.e,32,0,5)
+ if spells.elec.cast then
+  animatespell(spells.elec,32,0,5)
  end
- if sp.r.c then
-  anispell(sp.r,32,0,5)
+ if spells.rock.cast then
+  animatespell(spells.rock,32,0,5)
  end
- if sp.n.c then
-  anispell(sp.n,32,16,5)
+ if spells.none.cast then
+  animatespell(spells.none,32,16,5)
  end
  
- p.draw()
+ player.draw()
  
  if btn(5) then
-  sp.draw(sp.f,1,1)
-  sp.draw(sp.i,1,10)
-  sp.draw(sp.e,1,19)
-  sp.draw(sp.r,1,28)
+  spells.draw(spells.fire,1,1)
+  spells.draw(spells.ice,1,10)
+  spells.draw(spells.elec,1,19)
+  spells.draw(spells.rock,1,28)
  end
  
- print("level",rsx-32,2)
- print(m.lvl+1,rsx-8,2)
+ print("level",roomsizex-32,2)
+ print(monsters.level+1,roomsizex-8,2)
 end
-function drawgover()
+function drawgameover()
   sspr(0,48,48,8,13,32,110,12)
-  print("z/x: restart",36,rsy-42,10)
-  print("(note: everything resets!)",10,rsy-32,10)
+  print("z/x: restart",36,roomsizey-42,10)
+  print("(note: everything resets!)",10,roomsizey-32,10)
 end
 
 function _init()
- createspell(sp.f)
- createspell(sp.i)
- createspell(sp.e)
- createspell(sp.r)
+ createspell(spells.fire)
+ createspell(spells.ice)
+ createspell(spells.elec)
+ createspell(spells.rock)
 end
 function _update()
  if screen==0 then
@@ -419,8 +419,8 @@ function _update()
    screen=1
   end
  elseif screen==1 then
-  p.update()
-  m.update()
+  player.update()
+  monsters.update()
  elseif screen==2 then
   if btnp(4) or btnp(5) then
    run()
@@ -434,7 +434,7 @@ function _draw()
  elseif screen==1 then
   drawplay()
  elseif screen==2 then
-  drawgover()
+  drawgameover()
  end
 end
 __gfx__
