@@ -342,14 +342,15 @@ function drawtitle()
  if title.frame<1 or title.frame>2 then
   title.incr*=-1
  end
- sspr(16+(8*title.frame),0,8,8,32,24,player.size*2,player.size*2)
  
  if not btn(5) then
+  sspr(16+(8*title.frame),0,8,8,32,24,player.size*2,player.size*2)
+
   sspr(0,40,64,8,13,32,110,12)
   print("z: start",48,roomsizey-42,10)
   print("x: help",50,roomsizey-32,10)
  else
-  print("")
+  print("",0,0,7)
   print("you are a powerful mage, and")
   print("the world needs your magic!")
   print("use your wand to cast spells!")
