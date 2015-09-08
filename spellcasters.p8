@@ -56,39 +56,53 @@ monsters={}
 monsters.current=flr(rnd(4))+1 --1:spider 2:blob 3:magma 4:mummy
 monsters.level=0
 monsters.attacking=false
+monsters.dead=false
 monsters.update=function()
- timer[2]+=1
- if timer[2]>210-(5*monsters.level) then
-  monsters.attacking=true
-  sfx(6) --hit sfx
-  player.hp-=1
-  timer[2]=0
+ if not monsters.dead then
+  timer[2]+=1
+  if timer[2]>210-(5*monsters.level) then
+   monsters.attacking=true
+   sfx(6) --hit sfx
+   player.hp-=1
+   timer[2]=0
+  end
+ else
+  timer[3]+=1
+  if timer[3] >= 23 then
+   timer[3]=0
+   monsters.current=flr(rnd(4))+1
+   monsters.level+=1
+   timer[2]=0
+   monsters.dead=false
+  end
  end
 end
-monsters.draw=function ()
+monsters.draw=function()
  local y=16
  if monsters.attacking then
   y=24
  end
  if monsters.current==1 then
-  sspr(56,0,16,16,48,y,32,32)
+  sspr(56,0,16,16,48,y,32,32,monsters.dead,monsters.dead)
  elseif monsters.current==2 then
-  sspr(72,0,16,16,48,y,32,32)
+  sspr(72,0,16,16,48,y,32,32,monsters.dead,monsters.dead)
  elseif monsters.current==3 then
-  sspr(88,0,16,16,48,y,32,32)
+  sspr(88,0,16,16,48,y,32,32,monsters.dead,monsters.dead)
  elseif monsters.current==4 then
-  sspr(104,0,16,16,48,y,32,32)
+  sspr(104,0,16,16,48,y,32,32,monsters.dead,monsters.dead)
  else
   sspr(56,16,16,16,48,y,32,32)
  end
  monsters.attacking=false
 end
 monsters.checkdamage=function()
- if (monsters.current==1 and spells.rock.cast) or (monsters.current==2 and spells.elec.cast) or (monsters.current==3 and spells.ice.cast) or (monsters.current==4 and spells.fire.cast) then
+ if (monsters.current==1 and spells.rock.cast)
+  or (monsters.current==2 and spells.elec.cast)
+  or (monsters.current==3 and spells.ice.cast)
+  or (monsters.current==4 and spells.fire.cast)
+ then
+  monsters.dead=true
   sfx(7) --kill monster
-  monsters.current=flr(rnd(4))+1
-  monsters.level+=1
-  timer[2]=0  
  else
   sfx(8) --miss
  end
@@ -345,7 +359,7 @@ function drawtitle()
  
  if not btn(5) then
   sspr(16+(8*title.frame),0,8,8,32,24,player.size*2,player.size*2)
-
+  
   sspr(0,40,64,8,13,32,110,12)
   print("z: start",48,roomsizey-42,10)
   print("x: help",50,roomsizey-32,10)
