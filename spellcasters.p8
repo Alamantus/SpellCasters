@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 4
 __lua__
---spellcasters (v 0.7.1)
+--spellcasters (v 0.7.2)
 --by alamantus gamedev
 left=0
 right=1
@@ -39,6 +39,7 @@ spells.none.cast=false
 spells.animation={} --animation vars
 spells.animation.step=0
 spells.animation.frame=0
+spells.difficulty=0
 spells.draw=function(spell,x,y)
  local sprite=16*(spell.sprite/8)+4
  drawrecipe(spell.form,x,y,sprite)
@@ -115,7 +116,7 @@ player.x=48
 player.y=48
 player.xprevious=player.x
 player.yprevious=player.y
-player.s=10 --move speed
+player.s=16 --move speed
 player.wandposition={}
 player.wandposition.up=false
 player.wandposition.right=false
@@ -145,7 +146,11 @@ player.update=function()
   timer[1]+=1
  end
  if player.hp<=0 then
+  timer[4]=30
   screen=2
+  --file=io.open("spellcasters.highscore","w")
+  --io.write(monsters.level+1)
+  --io.close(file)
  end
 end
 player.move=function()
@@ -328,11 +333,31 @@ end
 function createspell(spell)
  spell.form={}
  last=10
- --at least 1 at most 4
- for i=0,flr(rnd(3))+1 do
-  pos=flr(rnd(4))
-  add(spell.form,pos)
-  last=pos
+ if spells.difficulty==1 then
+  for i=0,1 do
+   pos=flr(rnd(4))
+   add(spell.form,pos)
+   last=pos
+  end
+ elseif spells.difficulty==2 then
+  for i=0,2 do
+   pos=flr(rnd(4))
+   add(spell.form,pos)
+   last=pos
+  end
+ elseif spells.difficulty==3 then
+  for i=0,3 do
+   pos=flr(rnd(4))
+   add(spell.form,pos)
+   last=pos
+  end
+ else
+  --at least 1 at most 4
+  for i=0,flr(rnd(3))+1 do
+   pos=flr(rnd(4))
+   add(spell.form,pos)
+   last=pos
+  end
  end
  if (spell.name=="fire" and (arraysmatch(spell.form,spells.ice.form) or arraysmatch(spell.form,spells.elec.form) or arraysmatch(spell.form,spells.rock.form)))
   or (spell.name=="ice" and (arraysmatch(spell.form,spells.fire.form) or arraysmatch(spell.form,spells.elec.form) or arraysmatch(spell.form,spells.rock.form)))
@@ -358,9 +383,22 @@ function drawtitle()
  end
  
  if not btn(5) then
-  sspr(16+(8*title.frame),0,8,8,32,24,player.size*2,player.size*2)
+  sspr(16+(8*title.frame),0,8,8,32,16,player.size*2,player.size*2)
   
   sspr(0,40,64,8,13,32,110,12)
+  timer[5]+=1
+  if timer[5]%20>10 then
+   print("<        >",44,roomsizey-52,10)
+  end
+  if spells.difficulty==1 then
+   print("easy",56,roomsizey-52,10)
+  elseif spells.difficulty==2 then
+   print("medium",52,roomsizey-52,10)
+  elseif spells.difficulty==3 then
+  	print("hard",56,roomsizey-52,10)
+  else
+  	print("normal",52,roomsizey-52,10)
+  end
   print("z: start",48,roomsizey-42,10)
   print("x: help",50,roomsizey-32,10)
  else
@@ -417,19 +455,33 @@ function drawplay()
 end
 function drawgameover()
   sspr(0,48,48,8,13,32,110,12)
+  print("reached level",28,roomsizey-70,10)
+  print(monsters.level+1,90,roomsizey-70,10)
   print("z/x: restart",36,roomsizey-42,10)
   print("(note: everything resets!)",10,roomsizey-32,10)
 end
 
 function _init()
- createspell(spells.fire)
- createspell(spells.ice)
- createspell(spells.elec)
- createspell(spells.rock)
 end
 function _update()
  if screen==0 then
+  if btnp(0) then
+  	spells.difficulty-=1
+  end
+  if btnp(1) then
+  	spells.difficulty+=1
+  end
+  if spells.difficulty<0 then
+  	spells.difficulty=3
+  end
+  if spells.difficulty>3 then
+   spells.difficulty=0
+  end
   if btnp(4) then
+   createspell(spells.fire)
+   createspell(spells.ice)
+   createspell(spells.elec)
+   createspell(spells.rock)
    sfx(9)--start
    screen=1
   end
@@ -437,8 +489,11 @@ function _update()
   player.update()
   monsters.update()
  elseif screen==2 then
-  if btnp(4) or btnp(5) then
-   run()
+  timer[4]-=1
+  if timer[4]<=0 then
+   if btnp(4) or btnp(5) then
+    run()
+   end
   end
  end
 end
